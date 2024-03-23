@@ -26,29 +26,32 @@ class Foo {
 
 TEST(ObjectPoolTest, TestCase) {
   {
-    ObjectPool<Foo> object_pool(SIZE, X_VALUE, Y_VALUE);
+    // TODO(leisy): fix compile error: ambiguity when instantiating
+    // auto IncreaseNum = [](Foo* foo){ };
+    // auto object_pool = std::make_shared<ObjectPool<Foo>>(SIZE, IncreaseNum, X_VALUE, Y_VALUE);
+    auto object_pool = std::make_shared<ObjectPool<Foo>>(SIZE, X_VALUE, Y_VALUE);
     EXPECT_EQ(count, SIZE);
-    EXPECT_EQ(object_pool.GetFreeNums(), SIZE);
+    EXPECT_EQ(object_pool->GetFreeNums(), SIZE);
     {
       std::vector<std::shared_ptr<Foo>> tmp_vec;
       for (uint32_t i = 0; i < SIZE; i ++) {
-        std::shared_ptr<Foo> obj_ptr = object_pool.GetObject();
+        std::shared_ptr<Foo> obj_ptr = object_pool->GetObject();
         tmp_vec.push_back(obj_ptr);
 
         EXPECT_EQ(obj_ptr->get_x(), X_VALUE);
         EXPECT_EQ(obj_ptr->get_y(), Y_VALUE);
       }
-      EXPECT_EQ(object_pool.GetFreeNums(), 0);
+      EXPECT_EQ(object_pool->GetFreeNums(), 0);
 
-      std::shared_ptr<Foo> obj_ptr = object_pool.GetObject();
+      std::shared_ptr<Foo> obj_ptr = object_pool->GetObject();
       ASSERT_EQ(obj_ptr, nullptr);
     }
-    EXPECT_EQ(object_pool.GetFreeNums(), SIZE);
+    EXPECT_EQ(object_pool->GetFreeNums(), SIZE);
     
-    std::shared_ptr<Foo> obj_ptr = object_pool.GetObject();
+    std::shared_ptr<Foo> obj_ptr = object_pool->GetObject();
     EXPECT_EQ(obj_ptr->get_x(), X_VALUE);
     EXPECT_EQ(obj_ptr->get_y(), Y_VALUE);
-    EXPECT_EQ(object_pool.GetFreeNums(), SIZE - 1);
+    EXPECT_EQ(object_pool->GetFreeNums(), SIZE - 1);
   }
 
   EXPECT_EQ(count, 0);

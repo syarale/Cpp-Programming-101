@@ -15,11 +15,12 @@ class ObjectPool : public std::enable_shared_from_this<ObjectPool<T>> {
 
   template<typename... Args>
   explicit ObjectPool(uint32_t num, Args&&... args);
-
+  
+  // TODO(leisy): remove ambiguity when instantiating
   template<typename... Args>
   explicit ObjectPool(uint32_t num, Func func, Args&&... args);
 
-  ~ObjectPool();
+  virtual ~ObjectPool();
 
   std::shared_ptr<T> GetObject();
   uint32_t GetFreeNums() { return free_nums_; }
@@ -59,7 +60,7 @@ ObjectPool<T>::ObjectPool(uint32_t num, Args&&... args) : object_nums_(num), fre
 
 template<typename T>
 template<typename... Args>
-ObjectPool<T>::ObjectPool(uint32_t num, Func func, Args&&... args) : object_nums_(num) {
+ObjectPool<T>::ObjectPool(uint32_t num, Func func, Args&&... args) : object_nums_(num), free_nums_(num) {
   assert(num != 0);
   buffer_area_ = static_cast<char*> (std::calloc(object_nums_, sizeof(Node)));
   if (buffer_area_ == nullptr) {
@@ -88,9 +89,12 @@ std::shared_ptr<T> ObjectPool<T>::GetObject() {
   if (free_head_ == nullptr) {
     return nullptr;
   }
-
-  std::shared_ptr<T> obj_ptr(&(free_head_->element), 
-                             std::bind(&ObjectPool<T>::ReleaseObj, this, std::placeholders::_1));
+  
+  auto self = this->shared_from_this();
+  std::shared_ptr<T> obj_ptr(&(free_head_->element),
+                             [self](T* obj) { self->ReleaseObj(obj); });
+  // std::shared_ptr<T> obj_ptr(&(free_head_->element), 
+  //                            std::bind(&ObjectPool<T>::ReleaseObj, this, std::placeholders::_1));
   free_head_ = free_head_->next;
   free_nums_ --;
 
